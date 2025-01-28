@@ -43,20 +43,57 @@ struct Ball{
   void reset(const int mid_y, const int mid_x){
     x = get_random_num(mid_x-200, mid_x+200);
     y = get_random_num(mid_y-200, mid_y+200);
-    v_x = get_random_num(0,1) ? 4 : -4;
-    v_y = get_random_num(0,1) ? 4 : -4;
+    v_x = get_random_num(0,1) ? 2 : -2;
+    v_y = get_random_num(0,1) ? 2 : -2;
     rec = {(float)x,(float)y,(float)size,(float)size};
   }
 };
+
+/*
+bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &border, const int border_size){
+  if (ball.x <= border.x+border_size){
+    ball.hit_paddle();
+    return false;
+    //return true
+  } 
+
+  if (ball.x+ball.size >= border.x+border.width){
+    ball.hit_paddle();
+    return false;
+    //return true;
+  }
+
+  //bottom
+  if (ball.y+ball.size >= border.y+border.height-border_size){
+    ball.hit_edge();
+    return false;
+  }
+  if (ball.y <= border.y+border_size){
+    ball.hit_edge();
+    return false;
+  }
+  
+  if (CheckCollisionRecs(ball.rec,p1)){
+    ball.hit_paddle();
+    return false;
+  }
+  
+  if (CheckCollisionRecs(ball.rec,p2)){
+    ball.hit_paddle();
+    return false;
+  }
+  return false;
+}
+*/
 
 
 bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &border, const int border_size) {
   // Left and right border collisions (scoring conditions)
   if (ball.x <= border.x + border_size || ball.x + ball.size >= border.x + border.width) {
     //ball.reset(border.y + border.height/2, border.x + border.width/2);
-    //ball.hit_paddle();
+    ball.hit_paddle();
     //return true;
-    return true;
+    return false;
   }
 
   // Top and bottom border bounces
@@ -70,8 +107,8 @@ bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &bord
     // Determine collision type and adjust velocity/position
     if (ball.v_x < 0) {  // Ensure ball is moving towards paddle
       ball.hit_paddle();
+      // Optional: Add angle variation based on where ball hits paddle
       ball.x = p1.x + p1.width;
-      ball.rec.x = ball.x;
     }
     return false;
   }
@@ -80,11 +117,12 @@ bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &bord
   if (CheckCollisionRecs(ball.rec, p2)) {
     if (ball.v_x > 0) {  // Ensure ball is moving towards paddle
       ball.hit_paddle();
+      // Optional: Add angle variation based on where ball hits paddle
       ball.x = p2.x - ball.size;
-      ball.rec.x = ball.x;
     }
     return false;
   }
+
   return false;
 }
 void init_paddles(Rectangle &p1, Rectangle &p2, const Rectangle &border){
@@ -119,24 +157,39 @@ void write_file(std::ofstream &outputFile, std::pair<int,int> *balls, int iterat
   }
 }
 
-
-void move_paddle(int key, Rectangle &p2, int max_y, int min_y) {
-  static const int paddle_speed = 4;
-  if (key == KEY_UP && p2.y - paddle_speed > min_y) {
-    p2.y -= paddle_speed;
+std::vector<std::pair<int, int>>read_file(){
+  std::vector<std::pair<int, int>> vec;
+  std::ifstream file("py_nums.txt"); 
+  if (file.is_open()) {
+    std::string line;
+    while (std::getline(file, line)) {
+      std::string str1 = "";
+      std::string str2 = "";
+      bool space = false;
+      for (char c: line){
+        if (c == ' '){
+          space = true;
+        }
+        else if (space){
+          str2 += c;
+        }
+        else{
+          str1 += c;
+        }
+      }
+      vec.push_back({std::stoi(str1),std::stoi(str2)});
+    }
+    file.close();
+  } 
+  else {
+    std::cerr << "Error: Unable to open file." << std::endl;
   }
-  if (key == KEY_DOWN && p2.y + p2.height + paddle_speed < max_y) {
-    p2.y += paddle_speed;
-  }
+  return vec;
 }
 
 
-
-
 int main(void){
-  int const iterations = 250;
-  std::ofstream outputFile("cppOutputs.txt");
-  //std::pair<int,int> balls[iterations];
+  std::vector<std::pair<int,int>> vec = read_file();
   const int W = 900;
   const int H =700; 
   const int B_W = W-100;
@@ -151,80 +204,45 @@ int main(void){
   Rectangle p1;
   Rectangle p2;
   Ball ball = Ball(mid_x,max_y/2);
-  /*
-  ball.x = 319;
-  ball.y = 324;
-  ball.rec.x = 319;
-  ball.rec.y = 324;
-  ball.v_x = 4;
-  ball.v_y = 4;
   std::cout << "BALL INITIAL POS: " << ball.x << " " << ball.y << "\n";
   std::cout << "BALL INITIAL VS's: " << ball.v_x << " " << ball.v_y << "\n";
-  */
+  //Ball ball = Ball(mid_x, max_y/2,1,0);
   init_paddles(p1,p2,border);
 
-  int score1=0;
-  int score2=0;
-  int score_x = mid_x;
+  int score;
+  int score_x = 100;
   int score_y = 5;
-  //std::string str= "SCORE: ";
-
-  std::string p1_str = "P1 SCORE: ";
-  std::string p2_str = "P2 SCORE: ";
+  std::string str= "SCORE: ";
   InitWindow(W, H, "PONG");
   SetTargetFPS(60);
   
-  //int count = 0;
-  while (!WindowShouldClose()){
-    //balls[count] = {ball.x,ball.y}; 
-    //p1s[count] = {p1.x,p1.y}; 
-    //p2s[count] = {p2.x,p2.y}; 
+  int count = 0;
+  while (!WindowShouldClose() && count < vec.size()){
+    ball.x = vec[count].first;
+    ball.y = vec[count].second;
+    ball.rec.x = ball.x;
+    ball.rec.y = ball.y;
 
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
-    if (IsKeyDown(KEY_UP)) {
-      move_paddle(KEY_UP, p2, max_y, min_y);
-    }
-    if (IsKeyDown(KEY_DOWN)) {
-      move_paddle(KEY_DOWN, p2, max_y, min_y);
-    }    
     DrawRectangleLinesEx(border,border_size,BLACK);
     DrawRectangleRec(p1,BLACK);
     DrawRectangleRec(p2,BLACK);
     draw_dashed_line(mid_x, min_y, max_y);
 //Ball &ball, Rectangle &p1, Rectangle &p2, Rectangle &border, const int border_size){
-    bool point_score = detect_edge(ball, p1, p2,border,border_size);
-    ball.move();
+    //detect_edge(ball, p1, p2,border,border_size);
+    //ball.move();
     //DrawRectangle(ball.x,ball.y,ball.size,ball.size, RED);
     DrawRectangleRec(ball.rec,RED);
-    //std::string tmp = str + std::to_string(score);
-    //DrawText(str.c_str(), score_x,score_y, 50, RED);
-    std::string tmp1 = p1_str + std::to_string(score1);
-    std::string tmp2 = p2_str + std::to_string(score2);
-    DrawText(tmp1.c_str(), score_x-375,score_y, 50, RED);
-    DrawText(tmp2.c_str(), score_x+120,score_y, 50, RED);
+    std::string tmp = str + std::to_string(score);
+    DrawText(tmp.c_str(), score_x,score_y, 50, RED);
 
     EndDrawing();
-    if (point_score){
-      if (ball.x >p1.x){
-        score1++;
-      }
-      else{
-        score2++;
-      }
-      ball.reset(mid_x,max_y/2);
-      init_paddles(p1,p2, border);
-    }
-    //++count;
-    //if (count >= iterations){
-      //break;
-    //}
+    ++count;
   }
 
   CloseWindow(); 
-  //write_file(outputFile,balls,iterations);
-  std::cout << "BALL END: " << ball.x << " " << ball.y << "\n";
 
   return 0;
 }
