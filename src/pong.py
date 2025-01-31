@@ -56,12 +56,13 @@ class Paddle:
             self.y = y_offset
         self.initial_x = self.x
         self.initi_y = self.y
-    
+    ''' 
     def move_paddle(self,dir):
         if dir == "U":
             self.y+=4
         if dir == "D":
             self.y-=4
+    ''' 
     
     def reset(self):
         self.x = self.initial_x
@@ -86,6 +87,8 @@ class Pong:
         self.move_ammount = 4
         self.ball = Ball(self.max_y/2, self.mid_x)
         self.balls = []
+        self.hit_paddle1 = False
+        self.hit_paddle2 = False
         
     def update_arrs(self):
         self.balls.append((self.ball.x, self.ball.y))
@@ -97,6 +100,9 @@ class Pong:
 
     def get_state(self):
         return np.array([self.ball.x, self.ball.y, self.p1.x,self.p1.y,self.p2.x,self.p2.y]).astype(np.float32)
+    def get_state2(self):
+        return np.array([self.ball.x, self.ball.y, self.p2.x,self.p2.y,self.p1.x,self.p1.y]).astype(np.float32)
+
 
     def CheckCollisionRecs(self, rec1, rec2):
         if (rec1.x < rec2.x + rec2.width and 
@@ -109,15 +115,21 @@ class Pong:
     def check_col(self):
         if self.ball.x <= self.border_x + self.border_size or self.ball.x + self.ball.size >= self.border_x + self.b_w:
             #self.ball.hit_paddle()
+            self.hit_paddle1 = False
+            self.hit_paddle2 = False
             return True
             
         if self.ball.y + self.ball.size >= self.border_y + self.b_h - self.border_size or self.ball.y <= self.border_y + self.border_size:
             self.ball.hit_wall()
+            self.hit_paddle1 = False
+            self.hit_paddle1 =False 
             return False
             
         if self.CheckCollisionRecs(self.ball, self.p1):
             if self.ball.v_x < 0:  # Use v_x instead of vx
                 self.ball.hit_paddle()
+                self.hit_paddle1 = True
+                self.hit_paddle2 = False
                 self.ball.x = self.p1.x + self.p1.width
             return False
 
@@ -125,49 +137,51 @@ class Pong:
             if self.ball.v_x > 0:  # Use v_x instead of vx
                 self.ball.hit_paddle()
                 self.ball.x = self.p2.x - self.ball.size
+                self.hit_paddle2 = True
+                self.hit_paddle1 = False
             return False
+        
+        self.hit_paddle1 = False
+        self.hit_paddle1 = False 
         return False
     
     def move_p1(self, move):
-        if move == 1 and self.p1.y + 4 <= self.max_y:
+        if move == 1 and self.p1.y + self.move_ammount < self.max_y:
             self.p1.y += self.move_ammount
-        else:
-            if self.p1.y - 4 >= self.border_y:
-                self.p1.y -= self.move_ammount
+        elif self.p1.y - self.move_ammount > self.border_y:
+            self.p1.y -= self.move_ammount
 
     def move_p2(self, move):
-        if move == 0:
-            return
-        if move == 1 and self.p2.y + 4 <= self.max_y:
+        if move == 1 and self.p2.y + self.move_ammount < self.max_y:
             self.p2.y += self.move_ammount
-        elif move == -1 and self.p2.y - 4 >= self.border_y:
+        elif self.p2.y - self.move_ammount > self.border_y:
             self.p2.y -= self.move_ammount
 
-    def move(self,move,player):
+    def move(self,move,move2):
         #move paddle first
-        if player:
-            self.move_p1(move)
-        else:
-            self.move_p2(move)
+        self.move_p1(move)
+        self.move_p2(move2)
         #then move the ball
         self.ball.move()
-        curr_x = self.get_state()
+        curr_x1 = self.get_state()
+        curr_x2 = self.get_state2()
         over = self.check_col()
-        reward = 0
+        reward1 = 0
+        reward2 = 0
+
+        if self.hit_paddle1:
+            reward1+=1
+        if self.hit_paddle2:
+            reward2+=1
         if over:
-            reward = 1
-            if player:
-                if self.ball.x < self.mid_x:
-                    reward = -1
+            if self.ball.x < self.mid_x:
+                reward1 -=10
+                reward2 +=10
             else:
-                if self.ball.x > self.mid_x:
-                    reward = -1
-        return curr_x,reward,over
+                reward2 -=10
+                reward1 +=10
+        return curr_x1,reward1,over,curr_x2,reward2
 
-                
-
-
-    
     def run(self):
         iterations = 250
         print(f"BALL INITIAL POS: {self.ball.x} {self.ball.y}")
@@ -189,7 +203,5 @@ class Pong:
     
     def reset(self):
         self.ball.reset()
-
-if __name__ == '__main__':
-    pong = Pong()
-    pong.run()
+        self.p1.reset()
+        self.p2.reset()

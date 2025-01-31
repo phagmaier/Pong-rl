@@ -4,7 +4,7 @@
 #include <string>
 #include <fstream>
 #include <utility>
-//#include <vector>
+#include <vector>
 
 std::random_device rd;
 std::mt19937 gen(rd());
@@ -48,43 +48,6 @@ struct Ball{
     rec = {(float)x,(float)y,(float)size,(float)size};
   }
 };
-
-/*
-bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &border, const int border_size){
-  if (ball.x <= border.x+border_size){
-    ball.hit_paddle();
-    return false;
-    //return true
-  } 
-
-  if (ball.x+ball.size >= border.x+border.width){
-    ball.hit_paddle();
-    return false;
-    //return true;
-  }
-
-  //bottom
-  if (ball.y+ball.size >= border.y+border.height-border_size){
-    ball.hit_edge();
-    return false;
-  }
-  if (ball.y <= border.y+border_size){
-    ball.hit_edge();
-    return false;
-  }
-  
-  if (CheckCollisionRecs(ball.rec,p1)){
-    ball.hit_paddle();
-    return false;
-  }
-  
-  if (CheckCollisionRecs(ball.rec,p2)){
-    ball.hit_paddle();
-    return false;
-  }
-  return false;
-}
-*/
 
 
 bool detect_edge(Ball &ball, Rectangle &p1, Rectangle &p2, const Rectangle &border, const int border_size) {
@@ -157,27 +120,53 @@ void write_file(std::ofstream &outputFile, std::pair<int,int> *balls, int iterat
   }
 }
 
-std::vector<std::pair<int, int>>read_file(){
-  std::vector<std::pair<int, int>> vec;
-  std::ifstream file("py_nums.txt"); 
+struct Six{
+  Six(int one, int two, int three, int four, int five, int six) : one(one),two(two),three(three),four(four), five(five), six(six){}
+  Six() : one(0),two(0),three(0),four(0), five(0), six(0){}
+  Six(int *nums){
+    one = nums[0];
+    two = nums[1];
+    three = nums[2];
+    four = nums[3];
+    five = nums[4];
+    six = nums[5];
+  }
+  int one;
+  int two;
+  int three;
+  int four;
+  int five;
+  int six;
+};
+
+std::vector<Six>read_file(){
+  std::vector<Six> vec;
+  std::ifstream file("sample_game.txt"); 
   if (file.is_open()) {
     std::string line;
     while (std::getline(file, line)) {
-      std::string str1 = "";
-      std::string str2 = "";
-      bool space = false;
+      //std::cout << "READING A LINE\n";
+      int nums[6];
+      int count =0;
+      std::string str = "";
       for (char c: line){
         if (c == ' '){
-          space = true;
-        }
-        else if (space){
-          str2 += c;
+          //std::cout << str << "\n";
+          nums[count] = std::stoi(str);
+          ++count;
+          str = "";
+
         }
         else{
-          str1 += c;
+          str += c;
         }
       }
-      vec.push_back({std::stoi(str1),std::stoi(str2)});
+      if (count == 5){
+        //std::cout << "THIS BETTER RUN\n";
+        nums[count] = std::stoi(str);
+        vec.emplace_back(Six(nums));
+      }
+      //vec.push_back({std::stoi(str1),std::stoi(str2)});
     }
     file.close();
   } 
@@ -189,7 +178,7 @@ std::vector<std::pair<int, int>>read_file(){
 
 
 int main(void){
-  std::vector<std::pair<int,int>> vec = read_file();
+  std::vector<Six> vec = read_file();
   const int W = 900;
   const int H =700; 
   const int B_W = W-100;
@@ -218,10 +207,14 @@ int main(void){
   
   int count = 0;
   while (!WindowShouldClose() && count < vec.size()){
-    ball.x = vec[count].first;
-    ball.y = vec[count].second;
+    ball.x = vec[count].one;
+    ball.y = vec[count].two;
     ball.rec.x = ball.x;
     ball.rec.y = ball.y;
+    p1.x = vec[count].three;
+    p1.y = vec[count].four;
+    p2.x = vec[count].five;
+    p2.y = vec[count].six;
 
     BeginDrawing();
 
@@ -237,7 +230,7 @@ int main(void){
     DrawRectangleRec(ball.rec,RED);
     std::string tmp = str + std::to_string(score);
     DrawText(tmp.c_str(), score_x,score_y, 50, RED);
-
+    
     EndDrawing();
     ++count;
   }
