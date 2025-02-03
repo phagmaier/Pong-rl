@@ -5,7 +5,7 @@ class Ball:
     def __init__(self, mid_y, mid_x):
         self.mid_y = mid_y
         self.mid_x = mid_x
-        self.x = random.randint(int(mid_x-200), int(mid_x+200))
+        self.x =mid_x 
         self.y = random.randint(int(mid_y-200), int(mid_y+200))
         self.v_x = 4  # Use only v_x, not vx
         self.v_y = 4  # Use only v_y, not vy
@@ -24,7 +24,7 @@ class Ball:
         self.v_y *= -1
 
     def reset(self):
-        self.x = random.randint(int(self.mid_x-200), int(self.mid_x+200))
+        self.x = self.mid_x
         self.y = random.randint(int(self.mid_y-200), int(self.mid_y+200))
         num1 = random.randint(0,1)
         self.v_x = 4  # Use only v_x, not vx
@@ -144,6 +144,20 @@ class Pong:
         self.hit_paddle1 = False
         self.hit_paddle1 = False 
         return False
+
+    def move_p1(self, move):
+        if move == 1 and self.p1.y + self.move_ammount + self.p1.height <= self.max_y:
+            self.p1.y += self.move_ammount
+        elif self.p1.y - self.move_ammount >= self.border_y:
+            self.p1.y -= self.move_ammount
+
+    def move_p2(self, move):
+        if move == 1 and self.p2.y + self.move_ammount + self.p2.height <= self.max_y:
+            self.p2.y += self.move_ammount
+        elif self.p2.y - self.move_ammount >= self.border_y:
+            self.p2.y -= self.move_ammount
+    '''
+    #OLD VERSION BELOW
     
     def move_p1(self, move):
         if move == 1 and self.p1.y + self.move_ammount < self.max_y:
@@ -157,6 +171,8 @@ class Pong:
         elif self.p2.y - self.move_ammount > self.border_y:
             self.p2.y -= self.move_ammount
 
+    '''
+
     def move(self,move,move2):
         #move paddle first
         self.move_p1(move)
@@ -169,19 +185,26 @@ class Pong:
         reward1 = 0
         reward2 = 0
 
+        # Intermediate rewards for positioning (during the game, not just when over)
+        #distance_to_ball1 = abs(self.p1.y - self.ball.y)
+        #distance_to_ball2 = abs(self.p2.y - self.ball.y)
+        #reward1 += 0.01 * (1 / (distance_to_ball1 + 1))  # Reward for moving closer to the ball
+        #reward2 += 0.01 * (1 / (distance_to_ball2 + 1))
+        ''' 
         if self.hit_paddle1:
-            reward1+=1
+            reward1 += 0.1  # Increased reward for hitting the ball
         if self.hit_paddle2:
-            reward2+=1
+            reward2 += 0.1
+        '''
         if over:
-            if self.ball.x < self.mid_x:
-                reward1 -=10
-                reward2 +=10
-            else:
-                reward2 -=10
-                reward1 +=10
-        return curr_x1,reward1,over,curr_x2,reward2
+            if self.ball.x < self.mid_x:  # Player 2 scores
+                reward1 -= 1.0  
+                reward2 += 1.0  
+            else:  # Player 1 scores
+                reward2 -= 1.0  
+                reward1 += 1.0  
 
+        return curr_x1, reward1, over, curr_x2, reward2
     def run(self):
         iterations = 250
         print(f"BALL INITIAL POS: {self.ball.x} {self.ball.y}")
@@ -205,3 +228,5 @@ class Pong:
         self.ball.reset()
         self.p1.reset()
         self.p2.reset()
+        self.hit_paddle1 = False
+        self.hit_paddle2 = False

@@ -1,7 +1,7 @@
 import numpy as np
 class NN:
     def __init__(self):
-        self.H = 20 # number of hidden layer neurons
+        self.H = 128 # number of hidden layer neurons
         self.batch_size = 10 
         self.learning_rate = 1e-4
         self.gamma = 0.99 # discount factor for reward

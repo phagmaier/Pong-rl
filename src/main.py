@@ -5,6 +5,14 @@ import json
 from tqdm import tqdm
 
 
+def set_weights(nn):
+    with open("weights1.json", "w") as f:
+        json.dump(nn.model, f, default=serialize_numpy)
+
+    with open("weights2.json", "w") as f:
+        json.dump(nn.model, f, default=serialize_numpy)
+
+
 def write_game(twoDarr):
     #print("WRITING GAME")
     with open('sample_game.txt', 'w') as f:
@@ -17,10 +25,12 @@ def serialize_numpy(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
-def run(game, nn):
+def run(game, nn, add_weights=False):
+    if (add_weights):
+        set_weights(nn)
     my_count = 0
     game_history = []
-    end_goal = 500000
+    end_goal = 2000000
     cur_x = game.get_state() 
     cur_x2 = game.get_state2()
     prev_x = None
