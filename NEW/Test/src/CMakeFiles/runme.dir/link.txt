@@ -1,0 +1,1 @@
+/usr/bin/c++  -O3 -march=native -flto -ffast-math -fno-math-errno -Wl,--dependency-file=CMakeFiles/runme.dir/link.d CMakeFiles/runme.dir/main.cpp.o -o runme  /usr/lib/libraylib.so -L/usr/lib -lraylib
